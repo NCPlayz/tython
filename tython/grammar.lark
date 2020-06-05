@@ -91,11 +91,17 @@ interface_shape_args: interface_shape_arg ("," interface_shape_arg)*
 interface_shape_arg: id ":" expr
 
 class_structure: "class" id class_body
+               | "class" id "extends" id class_body -> inherited_class_structure
 
 class_body: "{" class_declarations+ "}"
 
 class_declarations: implicit_or_typed ";" -> field
                   | constructor_method
+                  | method
+
+method: id "(" func_args? ")" func_body
+      | "async" id "(" func_args? ")" func_body -> async_method
+      | ("@" function_call) method -> decorated_method
 
 constructor_method: "constructor" "(" constructor_args? ")" func_body
 

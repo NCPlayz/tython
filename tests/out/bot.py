@@ -1,6 +1,7 @@
-from discord import Client, Message
+from discord import Message
+from discord.ext.commands import Cog, Context, Bot, command
 token = 'TOKEN'
-client = Client()
+client = Bot() # TODO: add kwargs
 
 
 async def on_ready():
@@ -13,5 +14,15 @@ async def on_message(message: Message):
 
 client.event(on_ready)
 client.event(on_message)
+
+
+class CoolCog(Cog):
+
+    @command()
+    async def test(self, ctx: Context):
+        await ctx.send('no')
+
+
+client.add_cog(CoolCog())
 client.run(token)
 
