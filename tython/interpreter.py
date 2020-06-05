@@ -10,8 +10,7 @@ class TythonTransformer(Transformer):
         return _ast.Module(body=items)
     
     def stmts(self, items):
-        (items,) = items
-        return items
+        return items[0]
     
     def class_structure(self, items):
         (name,body) = items
@@ -38,8 +37,21 @@ class TythonTransformer(Transformer):
         return _ast.FunctionDef(name='__init__', args=_ast.arguments(args=method_args, defaults=[], vararg=None, kwarg=None), body=body, decorator_list=[])
     
     def function(self, items):
-        (name,args,body) = items
+        if len(items) == 2:
+            (name, body) = items
+            args = []
+        else:
+            (name,args,body) = items
         return _ast.FunctionDef(name=name, args=_ast.arguments(args=args, defaults=[], vararg=None, kwarg=None), body=body, decorator_list=[])
+
+    def async_function(self, items):
+        if len(items) == 2:
+            (name, body) = items
+            args = []
+        else:
+            (name,args,body) = items
+        return _ast.AsyncFunctionDef(name=name, args=_ast.arguments(args=args, defaults=[], vararg=None, kwarg=None), body=body, decorator_list=[])
+
 
     def constructor_args(self, items):
         return items
@@ -136,11 +148,22 @@ class TythonTransformer(Transformer):
         return _ast.Assign(targets=[_ast.Name(identifier)], value=expr)
     
     def new_class(self, items):
-        (identifier,args) = items
+        identifier = items[0]
+        if len(items) > 1:
+            args = items[1]
+        else:
+            args = []
         return _ast.Call(func=_ast.Name(id=identifier), args=args, keywords=[])
     
     def function_call(self, items):
         return self.new_class(items)
+
+    def async_await(self, items):
+        return _ast.Await(value=self.new_class(items))
+
+    def function_call_expr(self, items):
+        (items,_) = items
+        return _ast.Expr(value=items)
     
     def call_args(self, items):
         return items
@@ -163,6 +186,29 @@ class TythonTransformer(Transformer):
     
     def interface_declaration(self, items):
         return self.field(items)
+    
+    def import_reg(self, items):
+        (identifier,module,__) = items
+        if module.value == identifier:
+            names = [_ast.alias(name=module.value, asname=None)]
+        else:
+            names = [_ast.alias(name=module.value, asname=identifier)]
+        return _ast.Import(names=names)
+    
+    def import_from(self, items):
+        (import_names,_,__) = items
+        return _ast.ImportFrom(module=_.value, names=import_names, level=0) # TODO: determine the level properly
+
+    def import_names(self, items):
+        return items
+    
+    def import_name(self, items):
+        (items,) = items
+        return _ast.alias(name=items, asname=None)
+    
+    def import_as_name(self, items):
+        (import_name,as_name) = items
+        return _ast.alias(name=import_name, asname=as_name)
 
 grammar = Path(__file__).parent.joinpath('grammar.lark')
 parser = Lark.open(grammar)

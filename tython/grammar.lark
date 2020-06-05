@@ -4,13 +4,15 @@ stmts: class_structure
      | interface
      | function
      | var
+     | import_stmt
+     | function_call terminator? -> function_call_expr
 
 expr: types_repr
-    | function_call
     | interface_shape
     | dotted_access
     | new_class
-    | 
+    | id
+    | function_call
 
 var: var_declarations id "=" ret_expr terminator
    | dotted_access "=" ret_expr terminator -> reassign
@@ -26,6 +28,7 @@ var_declarations: "let"
             | "const" // TODO: signify importance?
 
 function: "function" id "(" func_args? ")" func_body
+        | "async" "function" id "(" func_args? ")" func_body -> async_function
 
 func_args: func_arg ("," func_arg)*
 
@@ -41,8 +44,10 @@ func_stmts: stmts
 
 ret_expr: expr
         | sum
+        | function
 
-function_call: id "(" call_args ")"
+function_call: dotted_access "(" call_args? ")"
+             | "await" dotted_access "(" call_args? ")" -> async_await
 
 call_args: call_arg ("," call_arg)*
 
@@ -99,7 +104,15 @@ constructor_args: constructor_arg ("," constructor_arg)*
 constructor_arg: func_arg
                | "public" func_arg -> public_arg
 
-new_class: "new" id "(" call_args ")"
+new_class: "new" id "(" call_args? ")"
+
+import_stmt: "import" "*" "as" id "from" str terminator -> import_reg
+           | "import" "{" import_names "}" "from" str terminator -> import_from
+
+import_names: import_name ("," import_name)*
+
+import_name: id
+           | id "as" id -> import_as_name
 
 str: /(`.*?`)|(".*?")|(\'.*?\')/
 
